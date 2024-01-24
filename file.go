@@ -34,7 +34,7 @@ type File struct {
 	Filename      string      `json:"filename"`
 	Purpose       FilePurpose `json:"purpose"`
 	Status        FileStatus  `json:"status"`         // Deprecated
-	StatusDetails *string     `json:"status_details"` // Deprecated
+	StatusDetails string      `json:"status_details"` // Deprecated
 }
 
 type FileList struct {
