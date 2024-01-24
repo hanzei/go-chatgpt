@@ -33,8 +33,8 @@ type File struct {
 	CreatedAt     int         `json:"created_at"`
 	Filename      string      `json:"filename"`
 	Purpose       FilePurpose `json:"purpose"`
-	Status        FileStatus  `json:"status"`         //Deprecated
-	StatusDetails *string     `json:"status_details"` //Deprecated
+	Status        FileStatus  `json:"status"`         // Deprecated
+	StatusDetails *string     `json:"status_details"` // Deprecated
 }
 
 type FileList struct {
