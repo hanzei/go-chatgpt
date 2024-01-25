@@ -62,7 +62,12 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request) (*http.Resp
 	if c.config.OrganizationID != "" {
 		req.Header.Set("OpenAI-Organization", c.config.OrganizationID)
 	}
-	req.Header.Set("Content-Type", "application/json")
+
+	// Default to Content-Type json
+	if req.Header.Get("Content-Type") == "" {
+		req.Header.Set("Content-Type", "application/json")
+	}
+
 	req.Header.Set("Accept", "application/json")
 
 	res, err := c.client.Do(req)
