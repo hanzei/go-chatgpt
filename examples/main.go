@@ -6,7 +6,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/ayush6624/go-chatgpt"
+	"github.com/hanzei/go-chatgpt"
 )
 
 func main() {
@@ -22,14 +22,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	a, _ := json.MarshalIndent(res, "", "  ");
+	a, _ := json.MarshalIndent(res, "", "  ")
 	log.Println(string(a))
 
 	res, err = c.Send(ctx, &chatgpt.ChatCompletionRequest{
 		Model: chatgpt.GPT4,
 		Messages: []chatgpt.ChatMessage{
 			{
-				Role: chatgpt.ChatGPTModelRoleSystem,
+				Role:    chatgpt.ChatGPTModelRoleSystem,
 				Content: "Hey, Explain GoLang to me in 2 sentences.",
 			},
 		},
@@ -38,6 +38,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	a, _ = json.MarshalIndent(res, "", "  ");
+	a, _ = json.MarshalIndent(res, "", "  ")
 	log.Println(string(a))
 }
