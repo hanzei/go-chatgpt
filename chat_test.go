@@ -6,8 +6,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	chatgpt_errors "github.com/ayush6624/go-chatgpt/utils"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestValidate(t *testing.T) {
@@ -27,12 +27,12 @@ func TestValidate(t *testing.T) {
 				Model:    "invalid-model",
 				Messages: validRequest().Messages,
 			},
-			expectedError: chatgpt_errors.ErrInvalidModel,
+			expectedError: ErrInvalidModel,
 		},
 		{
 			name:          "No messages",
 			request:       &ChatCompletionRequest{},
-			expectedError: chatgpt_errors.ErrNoMessages,
+			expectedError: ErrNoMessages,
 		},
 		{
 			name: "Invalid role",
@@ -45,7 +45,7 @@ func TestValidate(t *testing.T) {
 					},
 				},
 			},
-			expectedError: chatgpt_errors.ErrInvalidRole,
+			expectedError: ErrInvalidRole,
 		},
 		{
 			name: "Invalid temperature",
@@ -54,7 +54,7 @@ func TestValidate(t *testing.T) {
 				Messages:    validRequest().Messages,
 				Temperature: -0.5,
 			},
-			expectedError: chatgpt_errors.ErrInvalidTemperature,
+			expectedError: ErrInvalidTemperature,
 		},
 		{
 			name: "Invalid presence penalty",
@@ -63,7 +63,7 @@ func TestValidate(t *testing.T) {
 				Messages:        validRequest().Messages,
 				PresencePenalty: -3,
 			},
-			expectedError: chatgpt_errors.ErrInvalidPresencePenalty,
+			expectedError: ErrInvalidPresencePenalty,
 		},
 		{
 			name: "Invalid frequency penalty",
@@ -72,7 +72,7 @@ func TestValidate(t *testing.T) {
 				Messages:         validRequest().Messages,
 				FrequencyPenalty: -3,
 			},
-			expectedError: chatgpt_errors.ErrInvalidFrequencyPenalty,
+			expectedError: ErrInvalidFrequencyPenalty,
 		},
 	}
 
@@ -96,12 +96,15 @@ func validRequest() *ChatCompletionRequest {
 	}
 }
 
-func newTestServerAndClient() (*httptest.Server, *Client) {
+func newTestServerAndClient(t *testing.T) (*httptest.Server, *Client) {
 	// Create a new test HTTP server to handle requests
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{ "id": "chatcmpl-abcd", "object": "chat.completion", "created_at": 0, "choices": [ { "index": 0, "message": { "role": "assistant", "content": "\n\n Sample response" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 19, "completion_tokens": 47, "total_tokens": 66 }}`))
+		_, err := w.Write([]byte(`{ "id": "chatcmpl-abcd", "object": "chat.completion", "created_at": 0, "choices": [ { "index": 0, "message": { "role": "assistant", "content": "\n\n Sample response" }, "finish_reason": "stop" } ], "usage": { "prompt_tokens": 19, "completion_tokens": 47, "total_tokens": 66 }}`))
+		require.NoError(t, err)
 	}))
+
+	t.Cleanup(testServer.Close)
 
 	// Create a new client with the test server's URL and a mock API key
 	return testServer, &Client{
@@ -114,12 +117,14 @@ func newTestServerAndClient() (*httptest.Server, *Client) {
 	}
 }
 
-func newTestClientWithInvalidResponse() (*httptest.Server, *Client) {
+func newTestClientWithInvalidResponse(t *testing.T) (*httptest.Server, *Client) {
 	// Create a new test HTTP server to handle requests
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
-		w.Write([]byte(`{ fakejson }`))
+		_, err := w.Write([]byte(`{ fakejson }`))
+		require.NoError(t, err)
 	}))
+	t.Cleanup(testServer.Close)
 
 	// Create a new client with the test server's URL and a mock API key
 	return testServer, &Client{
@@ -132,12 +137,14 @@ func newTestClientWithInvalidResponse() (*httptest.Server, *Client) {
 	}
 }
 
-func newTestClientWithInvalidStatusCode() (*httptest.Server, *Client) {
+func newTestClientWithInvalidStatusCode(t *testing.T) (*httptest.Server, *Client) {
 	// Create a new test HTTP server to handle requests
 	testServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(`{ "error": "bad request" }`))
+		_, err := w.Write([]byte(`{ "error": "bad request" }`))
+		require.NoError(t, err)
 	}))
+	t.Cleanup(testServer.Close)
 
 	// Create a new client with the test server's URL and a mock API key
 	return testServer, &Client{
@@ -151,8 +158,7 @@ func newTestClientWithInvalidStatusCode() (*httptest.Server, *Client) {
 }
 
 func TestSend(t *testing.T) {
-	server, client := newTestServerAndClient()
-	defer server.Close()
+	_, client := newTestServerAndClient(t)
 
 	_, err := client.Send(context.Background(), &ChatCompletionRequest{
 		Model: GPT35Turbo,
@@ -176,8 +182,7 @@ func TestSend(t *testing.T) {
 	})
 	assert.Error(t, err)
 
-	server, client = newTestClientWithInvalidResponse()
-	defer server.Close()
+	_, client = newTestClientWithInvalidResponse(t)
 
 	_, err = client.Send(context.Background(), &ChatCompletionRequest{
 		Model: GPT35Turbo,
@@ -190,8 +195,7 @@ func TestSend(t *testing.T) {
 	})
 	assert.Error(t, err)
 
-	server, client = newTestClientWithInvalidStatusCode()
-	defer server.Close()
+	_, client = newTestClientWithInvalidStatusCode(t)
 
 	_, err = client.Send(context.Background(), &ChatCompletionRequest{
 		Model: GPT35Turbo,
@@ -207,8 +211,7 @@ func TestSend(t *testing.T) {
 }
 
 func TestSimpleSend(t *testing.T) {
-	server, client := newTestServerAndClient()
-	defer server.Close()
+	_, client := newTestServerAndClient(t)
 
 	_, err := client.SimpleSend(context.Background(), "Hello")
 	assert.NoError(t, err)
