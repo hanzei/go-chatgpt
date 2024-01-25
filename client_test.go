@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"testing"
 
-	chatgpt_errors "github.com/ayush6624/go-chatgpt/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -18,11 +17,11 @@ func TestNewClient(t *testing.T) {
 
 	_, err = NewClient("")
 	assert.NotNil(t, err)
-	assert.Equal(t, err, chatgpt_errors.ErrAPIKeyRequired)
+	assert.Equal(t, err, ErrAPIKeyRequired)
 
 	_, err = NewClientWithConfig(&Config{})
 	assert.NotNil(t, err)
-	assert.Equal(t, err, chatgpt_errors.ErrAPIKeyRequired)
+	assert.Equal(t, err, ErrAPIKeyRequired)
 
 	_, err = NewClientWithConfig(&Config{
 		APIKey: "test-apikey",
@@ -32,7 +31,7 @@ func TestNewClient(t *testing.T) {
 
 func TestClient2_sendRequest(t *testing.T) {
 	// Create a new test HTTP server and client to handle requests
-	testServer, client := newTestServerAndClient()
+	testServer, client := newTestServerAndClient(t)
 
 	// Create a new request
 	req, err := http.NewRequest("POST", testServer.URL, nil)
@@ -55,7 +54,7 @@ func TestClient2_sendRequest(t *testing.T) {
 		assert.Equal(t, req.Header.Get(key), value)
 	}
 
-	testServer, client = newTestClientWithInvalidStatusCode()
+	testServer, client = newTestClientWithInvalidStatusCode(t)
 	// Prepare a test request
 	req, err = http.NewRequest("GET", testServer.URL, nil)
 	assert.NoError(t, err)

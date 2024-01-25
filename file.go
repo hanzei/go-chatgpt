@@ -51,11 +51,10 @@ type DeleteFileResponse struct {
 // UploadFile implements https://platform.openai.com/docs/api-reference/files/create.
 func (c *Client) UploadFile(ctx context.Context, file io.Reader, purpose FilePurpose) (*File, error) {
 	endpoint := "/files"
-	httpReq, err := http.NewRequest("POST", c.config.BaseURL+endpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "POST", c.config.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpReq = httpReq.WithContext(ctx)
 
 	var requestBody bytes.Buffer
 	writer := multipart.NewWriter(&requestBody)
@@ -64,7 +63,7 @@ func (c *Client) UploadFile(ctx context.Context, file io.Reader, purpose FilePur
 		return nil, err
 	}
 
-	part, err := writer.CreateFormFile("file", "mydata.jsonl")
+	part, err := writer.CreateFormFile("file", "@mydata.jsonl")
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +79,7 @@ func (c *Client) UploadFile(ctx context.Context, file io.Reader, purpose FilePur
 	}
 
 	httpReq.Body = io.NopCloser(&requestBody)
+	httpReq.Header.Set("Content-Type", "multipart/form-data")
 
 	res, err := c.sendRequest(ctx, httpReq)
 	if err != nil {
@@ -98,11 +98,10 @@ func (c *Client) UploadFile(ctx context.Context, file io.Reader, purpose FilePur
 // ListFiles implements https://platform.openai.com/docs/api-reference/files/list.
 func (c *Client) ListFiles(ctx context.Context) (*FileList, error) {
 	endpoint := "/files"
-	httpReq, err := http.NewRequest("GET", c.config.BaseURL+endpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", c.config.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpReq = httpReq.WithContext(ctx)
 
 	res, err := c.sendRequest(ctx, httpReq)
 	if err != nil {
@@ -121,11 +120,10 @@ func (c *Client) ListFiles(ctx context.Context) (*FileList, error) {
 // RetrieveFile implements https://platform.openai.com/docs/api-reference/files/retrieve.
 func (c *Client) RetrieveFile(ctx context.Context, fileID string) (*File, error) {
 	endpoint := "/files/" + fileID
-	httpReq, err := http.NewRequest("GET", c.config.BaseURL+endpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", c.config.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpReq = httpReq.WithContext(ctx)
 
 	res, err := c.sendRequest(ctx, httpReq)
 	if err != nil {
@@ -144,11 +142,10 @@ func (c *Client) RetrieveFile(ctx context.Context, fileID string) (*File, error)
 // DeleteFile implements https://platform.openai.com/docs/api-reference/files/delete.
 func (c *Client) DeleteFile(ctx context.Context, fileID string) (*DeleteFileResponse, error) {
 	endpoint := "/files/" + fileID
-	httpReq, err := http.NewRequest("DELETE", c.config.BaseURL+endpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "DELETE", c.config.BaseURL+endpoint, nil)
 	if err != nil {
 		return nil, err
 	}
-	httpReq = httpReq.WithContext(ctx)
 
 	res, err := c.sendRequest(ctx, httpReq)
 	if err != nil {
@@ -168,11 +165,10 @@ func (c *Client) DeleteFile(ctx context.Context, fileID string) (*DeleteFileResp
 func (c *Client) RetrieveFileContent(ctx context.Context, fileID string) (string, error) {
 	endpoint := "/files/" + fileID + "/content"
 
-	httpReq, err := http.NewRequest("GET", c.config.BaseURL+endpoint, nil)
+	httpReq, err := http.NewRequestWithContext(ctx, "GET", c.config.BaseURL+endpoint, nil)
 	if err != nil {
 		return "", err
 	}
-	httpReq = httpReq.WithContext(ctx)
 
 	res, err := c.sendRequest(ctx, httpReq)
 	if err != nil {

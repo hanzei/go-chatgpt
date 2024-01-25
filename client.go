@@ -3,10 +3,9 @@ package chatgpt
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
-
-	"github.com/ayush6624/go-chatgpt/utils"
 )
 
 const (
@@ -32,9 +31,41 @@ type Config struct {
 	OrganizationID string
 }
 
+var (
+	// ErrAPIKeyRequired is returned when the API Key is not provided
+	ErrAPIKeyRequired = errors.New("API Key is required")
+
+	// ErrInvalidModel is returned when the model is invalid
+	ErrInvalidModel = errors.New("invalid model")
+
+	// ErrNoMessages is returned when no messages are provided
+	ErrNoMessages = errors.New("no messages provided")
+
+	// ErrInvalidRole is returned when the role is invalid
+	ErrInvalidRole = errors.New("invalid role. Only `user`, `system` and `assistant` are supported")
+
+	// ErrInvalidTemperature is returned when the temperature is invalid
+	ErrInvalidTemperature = errors.New("invalid temperature. 0<= temp <= 2")
+
+	// ErrInvalidPresencePenalty
+	ErrInvalidPresencePenalty = errors.New("invalid presence penalty. -2<= presence penalty <= 2")
+
+	// ErrInvalidFrequencyPenalty
+	ErrInvalidFrequencyPenalty = errors.New("invalid frequency penalty. -2<= frequency penalty <= 2")
+)
+
+type apiError struct {
+	Error struct {
+		Message string `json:"message"`
+		Type    string `json:"type"`
+		Param   any    `json:"param"`
+		Code    any    `json:"code"`
+	} `json:"error"`
+}
+
 func NewClient(apikey string) (*Client, error) {
 	if apikey == "" {
-		return nil, chatgpt_errors.ErrAPIKeyRequired
+		return nil, ErrAPIKeyRequired
 	}
 
 	return &Client{
@@ -48,7 +79,7 @@ func NewClient(apikey string) (*Client, error) {
 
 func NewClientWithConfig(config *Config) (*Client, error) {
 	if config.APIKey == "" {
-		return nil, chatgpt_errors.ErrAPIKeyRequired
+		return nil, ErrAPIKeyRequired
 	}
 
 	return &Client{
@@ -76,12 +107,17 @@ func (c *Client) sendRequest(ctx context.Context, req *http.Request) (*http.Resp
 	}
 	if res.StatusCode != http.StatusOK {
 		// Parse body
-		var errMessage interface{}
-		if err := json.NewDecoder(res.Body).Decode(&errMessage); err != nil {
+		var apiError apiError
+		if err := json.NewDecoder(res.Body).Decode(&apiError); err != nil {
 			return nil, err
 		}
 
-		return nil, fmt.Errorf("api request failed: status Code: %d %s %s Message: %+v", res.StatusCode, res.Status, res.Request.URL, errMessage)
+		return nil, fmt.Errorf("api request failed: status Code: %d, URL: %s, Error type: %s, Message: %s",
+			res.StatusCode,
+			res.Request.URL,
+			apiError.Error.Type,
+			apiError.Error.Message,
+		)
 	}
 
 	return res, nil
